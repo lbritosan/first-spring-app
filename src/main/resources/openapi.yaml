@@ -1,0 +1,90 @@
+openapi: 3.0.3
+info:
+  title: First Spring App API
+  description: API REST simples desenvolvida com Spring Boot para fins de aprendizado. Oferece endpoints para demonstrar conceitos de REST, injeção de dependência e manipulação de dados JSON.
+  version: 0.0.1-SNAPSHOT
+  contact:
+    name: Leonardo Brito
+    email: lbritosan@gmail.com
+servers:
+  - url: http://localhost:8080
+    description: Ambiente de desenvolvimento (perfil dev)
+  - url: http://localhost:3000
+    description: Ambiente de produção (perfil prod)
+
+paths:
+  /hello-world:
+    get:
+      summary: Obter mensagem Hello World
+      description: Retorna uma mensagem simples "Hello World Leonardo" com o nome fixo "Leonardo". Demonstra um endpoint GET básico.
+      operationId: getHelloWorld
+      responses:
+        '200':
+          description: Mensagem retornada com sucesso
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Hello World Leonardo
+    post:
+      summary: Processar mensagem com usuário
+      description: Recebe um identificador único (id) na URL, um parâmetro opcional 'filter' na query string, e um objeto User no corpo da requisição (com 'name' e 'email'). Retorna uma mensagem concatenada como JSON.
+      operationId: postHelloWorld
+      parameters:
+        - name: id
+          in: path
+          description:
+            Identificador único na URL (ex.: CPF ou outro identificador)
+          required: true
+          schema:
+            type: string
+            example: 32376579840
+        - name: filter
+          in: query
+          description:
+            Filtro opcional para a requisição (ex.: nome ou outro valor)
+          required: false
+          schema:
+            type: string
+            default: nenhum
+            example: Leonardo
+      requestBody:
+        description: Objeto User contendo o nome e email do usuário
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+            example:
+              name: Leonardo Brito
+              email: lbritosan@gmail.com
+      responses:
+        '200':
+          description: Mensagem concatenada retornada como JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example:
+                      Hello World Leonardo Brito id:
+                        32376579840 filter: Leonardo
+components:
+  schemas:
+    User:
+      type: object
+      description: Objeto representando um usuário com nome e email
+      properties:
+        name:
+          type: string
+          description: Nome completo do usuário
+          example: Leonardo Brito
+        email:
+          type: string
+          description: Endereço de email do usuário
+          example: lbritosan@gmail.com
+      required:
+        - name
+        - email

@@ -3,6 +3,7 @@ package com.lbritosan.first_spring_app.controller;
 import com.lbritosan.first_spring_app.domain.User;
 import com.lbritosan.first_spring_app.service.HelloWorldService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,8 +27,10 @@ public class HelloWorldController {
         return helloWorldService.helloWorld("Leonardo");
     }
 
-    @PostMapping("/{id}")
-    public String helloWorldPost(@PathVariable("id") String id, @RequestParam(value = "filter", defaultValue = "nenhum") String filter, @RequestBody User body){
+    @PostMapping(value = "/{id}", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String helloWorldPost(@PathVariable("id") String id,
+                                 @RequestParam(value = "filter", defaultValue = "nenhum") String filter,
+                                 @RequestBody User body) {
         return "Hello World " + body.getName() + " id: " + id + " filter: " + filter;
     }
 }
