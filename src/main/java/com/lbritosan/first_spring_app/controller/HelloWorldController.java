@@ -27,7 +27,7 @@ public class HelloWorldController {
         return helloWorldService.helloWorld("Leonardo");
     }
 
-    @PostMapping(value = "/{id}", produces = MediaType.TEXT_PLAIN_VALUE)
+    @PostMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public String helloWorldPost(@PathVariable("id") String id,
                                  @RequestParam(value = "filter", defaultValue = "nenhum") String filter,
                                  @RequestBody User body) {
