@@ -1,0 +1,224 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Spring App - CRUD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4">First Spring App - Gerenciamento de Usuários</h1>
+
+        <!-- Formulário para Criar Usuário -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">Criar Usuário</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <input id="createName" type="text" placeholder="Nome" class="border p-2 rounded">
+                <input id="createEmail" type="email" placeholder="Email" class="border p-2 rounded">
+                <button onclick="createUser()" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Criar</button>
+            </div>
+            <p id="createMessage" class="text-red-500 mt-2"></p>
+        </div>
+
+        <!-- Formulário para Hello World -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">Testar Hello World</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <input id="helloId" type="text" placeholder="ID (ex.: 32376579840)" class="border p-2 rounded">
+                <input id="helloFilter" type="text" placeholder="Filtro (ex.: Leonardo)" class="border p-2 rounded">
+                <input id="helloName" type="text" placeholder="Nome" class="border p-2 rounded">
+                <input id="helloEmail" type="email" placeholder="Email" class="border p-2 rounded">
+                <button onclick="testHelloWorld()" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Enviar</button>
+            </div>
+            <p id="helloMessage" class="text-red-500 mt-2"></p>
+        </div>
+
+        <!-- Lista de Usuários -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Lista de Usuários</h2>
+            <table id="userTable" class="w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border p-2">ID</th>
+                        <th class="border p-2">Nome</th>
+                        <th class="border p-2">Email</th>
+                        <th class="border p-2">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080'; // Atualizar para URL do Render após deploy
+        const AUTH = { username: 'admin', password: 'password' };
+
+        // Listar usuários
+        async function fetchUsers() {
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    headers: { 'Authorization': 'Basic ' + btoa(`${AUTH.username}:${AUTH.password}`) }
+                });
+                if (!response.ok) throw new Error(`Erro: ${response.status}`);
+                const users = await response.json();
+                const tbody = document.getElementById('userTableBody');
+                tbody.innerHTML = '';
+                users.forEach(user => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="border p-2">${user.id}</td>
+                            <td class="border p-2">${user.name}</td>
+                            <td class="border p-2">${user.email}</td>
+                            <td class="border p-2">
+                                <button onclick="editUser(${user.id}, '${user.name}', '${user.email}')" class="bg-yellow-500 text-white p-1 rounded">Editar</button>
+                                <button onclick="deleteUser(${user.id})" class="bg-red-500 text-white p-1 rounded">Deletar</button>
+                            </td>
+                        </tr>`;
+                });
+            } catch (error) {
+                console.error('Erro ao listar usuários:', error);
+            }
+        }
+
+        // Criar usuário
+        async function createUser() {
+            const name = document.getElementById('createName').value;
+            const email = document.getElementById('createEmail').value;
+            const message = document.getElementById('createMessage');
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Basic ' + btoa(`${AUTH.username}:${AUTH.password}`)
+                    },
+                    body: JSON.stringify({ name, email })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(JSON.stringify(errorData));
+                }
+                message.textContent = 'Usuário criado com sucesso!';
+                message.className = 'text-green-500 mt-2';
+                document.getElementById('createName').value = '';
+                document.getElementById('createEmail').value = '';
+                fetchUsers();
+            } catch (error) {
+                message.textContent = `Erro: ${error.message}`;
+                message.className = 'text-red-500 mt-2';
+            }
+        }
+
+        // Editar usuário
+        async function editUser(id, name, email) {
+            const newName = prompt('Novo nome:', name);
+            const newEmail = prompt('Novo email:', email);
+            if (newName && newEmail) {
+                try {
+                    const response = await fetch(`${API_URL}/users/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Basic ' + btoa(`${AUTH.username}:${AUTH.password}`)
+                        },
+                        body: JSON.stringify({ name: newName, email: newEmail })
+                    });
+                    if (!response.ok) throw new Error(`Erro: ${response.status}`);
+                    fetchUsers();
+                } catch (error) {
+                    alert(`Erro ao atualizar: ${error.message}`);
+                }
+            }
+        }
+
+        // Deletar usuário
+        async function deleteUser(id) {
+            if (confirm('Tem certeza que deseja deletar este usuário?')) {
+                try {
+                    const response = await fetch(`${API_URL}/users/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': 'Basic ' + btoa(`${AUTH.username}:${AUTH.password}`) }
+                    });
+                    if (!response.ok) throw new Error(`Erro: ${response.status}`);
+                    fetchUsers();
+                } catch (error) {
+                    alert(`Erro ao deletar: ${error.message}`);
+                }
+            }
+        }
+
+        // Testar POST /hello-world/{id}
+        async function testHelloWorld() {
+            const id = document.getElementById('helloId').value;
+            const filter = document.getElementById('helloFilter').value;
+            const name = document.getElementById('helloName').value;
+            const email = document.getElementById('helloEmail').value;
+            const message = document.getElementById('helloMessage');
+            try {
+                const response = await fetch(`${API_URL}/hello-world/${id}?filter=${filter}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Basic ' + btoa(`${AUTH.username}:${AUTH.password}`)
+                    },
+                    body: JSON.stringify({ name, email })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(JSON.stringify(errorData));
+                }
+                const data = await response.json();
+                message.textContent = `Sucesso: ${data.message}`;
+                message.className = 'text-green-500 mt-2';
+            } catch (error) {
+                message.textContent = `Erro: ${error.message}`;
+                message.className = 'text-red-500 mt-2';
+            }
+        }
+
+        // Carregar usuários ao iniciar
+        fetchUsers();
+    </script>
+</body>
+</html>
