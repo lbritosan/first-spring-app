@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: first spring-app
+    env: node
+    branch: feature/security-and-render-deploy
+    buildCommand: |
+      apt-get update && apt-get install -y openjdk-21-jdk maven
+      mvn clean install -DskipTests
+    startCommand: java -jar target/first spring-app-0.0.1-SNAPSHOT.jar
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: dev
+      - key: JAVA_VERSION
+        value: 21
+      - key: SERVER_CONNECTION_TIMEOUT
+        value: 120000
+      - key: SERVER_READ_TIMEOUT
+        value: 120000
