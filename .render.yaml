@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: first spring-app
+    name: first-spring-app
     env: docker
     branch: feature/security-and-render-deploy
     dockerfilePath: ./Dockerfile
